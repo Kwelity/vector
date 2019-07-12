@@ -115,6 +115,10 @@ impl LogEvent {
         }
     }
 
+    pub fn unflatten(self) -> Unflatten {
+        unimplemented!()
+    }
+
     pub fn explicit_fields<'a>(&'a self) -> FieldsIter<'a> {
         FieldsIter {
             inner: self.structured.iter(),
@@ -499,6 +503,9 @@ impl From<String> for Event {
         Bytes::from(line).into()
     }
 }
+
+#[derive(Debug)]
+pub struct Unflatten {}
 
 #[derive(Clone)]
 pub struct FieldsIter<'a> {
