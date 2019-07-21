@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use string_cache::DefaultAtom as Atom;
 
 pub mod metric;
+mod unflatten;
 
 pub use metric::Metric;
 
@@ -115,7 +116,7 @@ impl LogEvent {
         }
     }
 
-    pub fn unflatten(self) -> Unflatten {
+    pub fn unflatten(self) -> unflatten::Unflatten {
         unimplemented!()
     }
 
@@ -273,16 +274,6 @@ impl ValueKind {
         match &self {
             ValueKind::Timestamp(ts) => Some(ts),
             _ => None,
-        }
-    }
-
-    pub fn into_json_value(self) -> JsonValue {
-        match self {
-            ValueKind::Bytes(bytes) => String::from_utf8_lossy(&bytes).into_owned().into(),
-            ValueKind::Timestamp(timestamp) => timestamp_to_string(&timestamp).into(),
-            ValueKind::Integer(num) => num.into(),
-            ValueKind::Float(num) => num.into(),
-            ValueKind::Boolean(b) => b.into(),
         }
     }
 }
@@ -511,48 +502,6 @@ impl From<&str> for Event {
 impl From<String> for Event {
     fn from(line: String) -> Self {
         Bytes::from(line).into()
-    }
-}
-
-use serde_json::{map::Map, Value as JsonValue};
-
-#[derive(Debug)]
-pub struct Unflatten {
-    map: HashMap<Atom, JsonValue>,
-}
-
-impl From<HashMap<Atom, Value>> for Unflatten {
-    fn from(log: HashMap<Atom, Value>) -> Self {
-        let mut map = HashMap::new();
-        for (k, v) in log {
-            let split = k.split(".");
-
-            // TODO: there should always be one?
-            let k = split.next().unwrap();
-            if let Some(nested_k) = split.next() {
-                if let Some(nested_map) = map.get_mut(&k) {
-                    // TODO: support multiple nested maps
-                    nested_map.insert(nested_k, v.value.into_json_value());
-                } else {
-                    let mut map = Map::new();
-                    map.insert(nested_k, v.value.into_json_value());
-                    map
-                }
-            } else {
-                map.insert(k, v.value.into_json_value());
-            }
-        }
-
-        Unflatten { map }
-    }
-}
-
-impl Serialize for Unflatten {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.collect_map(self.map.clone())
     }
 }
 
