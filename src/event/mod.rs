@@ -117,7 +117,7 @@ impl LogEvent {
     }
 
     pub fn unflatten(self) -> unflatten::Unflatten {
-        unimplemented!()
+        unflatten::Unflatten::from(self.structured)
     }
 
     pub fn explicit_fields<'a>(&'a self) -> FieldsIter<'a> {
