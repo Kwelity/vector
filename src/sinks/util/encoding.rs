@@ -36,7 +36,10 @@ pub fn log_event_as_bytes(event: Event, encoding: &Option<BasicEncoding>) -> Res
     log_event_as_raw_bytes(event, encoding).map(Bytes::from)
 }
 
-pub fn log_event_as_bytes_with_nl(event: Event, encoding: &Option<BasicEncoding>) -> Result<Bytes, ()> {
+pub fn log_event_as_bytes_with_nl(
+    event: Event,
+    encoding: &Option<BasicEncoding>,
+) -> Result<Bytes, ()> {
     log_event_as_raw_bytes(event, encoding).map(|mut bytes| {
         bytes.push(b'\n');
         Bytes::from(bytes)

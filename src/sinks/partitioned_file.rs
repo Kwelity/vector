@@ -1,7 +1,7 @@
 use crate::{
     buffers::Acker,
     event::Event,
-    sinks::file::{FileSink, EmbeddedFileSink},
+    sinks::file::{EmbeddedFileSink, FileSink},
     sinks::util::{
         encoding::{self, BasicEncoding},
         SinkExt,
@@ -10,11 +10,10 @@ use crate::{
     topology::config::DataType,
 };
 
-use futures::{future, try_ready, Async, AsyncSink, Future, Poll, Sink, StartSend};
+use futures::{future, Async, AsyncSink, Sink, StartSend};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use tracing::field;
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -33,7 +32,7 @@ impl PartitionedFileSinkConfig {
     pub fn new(path_template: String) -> Self {
         Self {
             path_template,
-            close_timeout_secs : default_close_timeout_secs(),
+            close_timeout_secs: default_close_timeout_secs(),
             encoding: None,
         }
     }
@@ -43,9 +42,10 @@ impl PartitionedFileSinkConfig {
 impl crate::topology::config::SinkConfig for PartitionedFileSinkConfig {
     fn build(&self, acker: Acker) -> Result<(super::RouterSink, super::Healthcheck), String> {
         let sink = PartitionedFileSink::new(
-                Template::from(&self.path_template[..]),
-                self.encoding.clone())
-            .stream_ack(acker);
+            Template::from(&self.path_template[..]),
+            self.encoding.clone(),
+        )
+        .stream_ack(acker);
 
         Ok((Box::new(sink), Box::new(future::ok(()))))
     }
@@ -81,12 +81,13 @@ impl Sink for PartitionedFileSink {
             Ok(bytes) => {
                 let path = PathBuf::from(String::from_utf8_lossy(&bytes).as_ref());
 
-                let mut partition = self.partitions
+                let partition = self
+                    .partitions
                     .entry(path.clone())
                     .or_insert(FileSink::new_with_encoding(&path, self.encoding.clone()));
 
                 partition.start_send(event)
-            },
+            }
 
             Err(missing_keys) => {
                 warn!(
@@ -99,18 +100,16 @@ impl Sink for PartitionedFileSink {
     }
 
     fn poll_complete(&mut self) -> Result<Async<()>, Self::SinkError> {
-        self.partitions
-            .iter_mut()
-            .for_each(|(path, partition)| {
-                match partition.poll_complete() {
-                    Ok(_) => {},
+        self.partitions.iter_mut().for_each(|(path, partition)| {
+            match partition.poll_complete() {
+                Ok(_) => {}
 
-                    Err(()) => {
-                        error!("Error in downstream FileSink with path {:?}", path);
-                        //todo: close file sink
-                    }
+                Err(()) => {
+                    error!("Error in downstream FileSink with path {:?}", path);
+                    //todo: close file sink
                 }
-            });
+            }
+        });
 
         Ok(Async::Ready(()))
     }

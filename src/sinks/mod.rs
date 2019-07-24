@@ -7,10 +7,10 @@ pub mod blackhole;
 pub mod console;
 pub mod elasticsearch;
 pub mod file;
-pub mod partitioned_file;
 pub mod http;
 #[cfg(feature = "rdkafka")]
 pub mod kafka;
+pub mod partitioned_file;
 pub mod prometheus;
 pub mod splunk_hec;
 pub mod tcp;
