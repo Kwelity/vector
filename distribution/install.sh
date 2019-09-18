@@ -195,8 +195,8 @@ install_from_archive() {
 
     local _retval=$?
 
-    # ignore rm "$_file"
-    # ignore rmdir "$_dir"
+    ignore rm "$_file"
+    ignore rmdir "$_dir"
 
     return "$_retval"
 }
